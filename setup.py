@@ -7,13 +7,13 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
-with open("jupyterlite_duckdb_wasm/_version.py", "r") as file:
+with open("jupylite_duckdb/_version.py", "r") as file:
     code = file.read()
     exec(code)
     _version = __version__  # type: ignore # noqa
 
 setup(
-    name="jupyterlite_duckdb_wasm",
+    name="jupylite_duckdb",
     version=_version,  # type: ignore # noqa
     description="Testing",
     long_description=long_description,
