@@ -4,49 +4,45 @@ from typing import Optional
 
 async def query(sql: str, connection: object = None) -> DataFrame:
     """Executes query in a standalone connection"""
-    def handle_result(result):
-        # Convert the result to a Pandas DataFrame
-        df = DataFrame(result.to_dict())
+    if connection is not None:
+        result_promise = connection.query(sql)
+    else:
+        js_function = js.Function('obj', '''
+            async function executeSqlDuckdb() {
+                    let c = undefined
+                    if(obj.connection == undefined) {
+                        const duckdb = await import('https://cdn.skypack.dev/@duckdb/duckdb-wasm');
+                        const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
+                        const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
 
-        # Do something with the DataFrame
-        print(df.head())
-        
-    js_function = js.Function('obj', '''
-        async function executeSqlDuckdb() {
-                let c = undefined
-                if(obj.connection == undefined) {
-                    const duckdb = await import('https://cdn.skypack.dev/@duckdb/duckdb-wasm');
-                    const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
-                    const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
+                        const worker_url = URL.createObjectURL(
+                            new Blob([`importScripts("${bundle.mainWorker}");`], { type: 'text/javascript' })
+                        );
+                        const worker = new Worker(worker_url);
+                        const logger = new duckdb.ConsoleLogger();
+                        const db = new duckdb.AsyncDuckDB(logger, worker);
+                        await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+                        c = await db.connect();
+                    }
+                    else {
+                        c = obj.connection
+                    }
 
-                    const worker_url = URL.createObjectURL(
-                        new Blob([`importScripts("${bundle.mainWorker}");`], { type: 'text/javascript' })
-                    );
-                    const worker = new Worker(worker_url);
-                    const logger = new duckdb.ConsoleLogger();
-                    const db = new duckdb.AsyncDuckDB(logger, worker);
-                    await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
-                    c = await db.connect();
+                    console.log('Running SQL: ', obj.sql)
+                    const sql = obj.sql;
+                    const result = await c.query(sql);
+
+                    console.log('Result:', result);
+                    return result
                 }
-                else {
-                    c = obj.connection
-                }
+            return executeSqlDuckdb()
+        ''')
 
-                console.log('Running SQL: ', obj.sql)
-                const sql = obj.sql;
-                const result = await c.query(sql);
+        js_obj = js.Object() 
+        js_obj.sql = sql
+        js_obj.connection = connection
 
-                console.log('Result:', result);
-                return result
-            }
-        return executeSqlDuckdb()
-    ''')
-
-    js_obj = js.Object() 
-    js_obj.sql = sql
-    js_obj.connection = connection
-
-    result_promise = js_function(js_obj)    # <class 'pyodide.webloop.PyodideFuture'>
+        result_promise = js_function(js_obj)    # <class 'pyodide.webloop.PyodideFuture'>
     
     obj = await result_promise
     a = obj.toArray()
