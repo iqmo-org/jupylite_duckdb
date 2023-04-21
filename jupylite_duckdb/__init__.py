@@ -1,1 +1,1 @@
-from jupyterlite_duckdb_wasm.jdw import connect, query  # type: ignore
+from jupylite_duckdb.jdw import connect, query  # type: ignore
