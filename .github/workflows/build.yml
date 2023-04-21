@@ -1,0 +1,116 @@
+name: Build on Tag
+# On Commit, uses a "dev" version and pushes to testpypi
+# On Release created, uses the tag and stores assets in Release
+# TODO: On Release created, push to PYPI
+
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+    #branches: ["main"]
+
+# On a push, builds with a bumped release + dev suffix, and pushes to testpypi
+# On a release, builds according to the tag (v0.1.1, or v0.1.1.rc1), pushes to pypi and stores assets
+# https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9"]
+    steps:
+      - uses: actions/checkout@v3
+        with: # needed for tags for dunamai
+          fetch-depth: 0
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install --user dunamai pytest
+      - name: If push, bump dev version
+        if: github.event_name == 'push' && ! startsWith(github.event.ref, 'refs/tags/v')
+        run: |
+          # Since this is a push, append dev0 to separate from a separate tag event
+          export RDISTANCE=`dunamai from git --format "{distance}"`
+          export RVERSION=$(dunamai from git --bump --no-metadata)
+
+          if [ $RDISTANCE -eq 0 ] 
+          then
+            export RVERSION=$RVERSION.dev0
+          fi
+
+          echo "RVERSION=$RVERSION" >> $GITHUB_ENV
+      - name: If a v_tag, unbumped version
+        if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+        run: |
+          echo ${{ github.event.ref }}
+          git tag
+          dunamai from git --debug
+          echo "RVERSION=$(dunamai from git)" >> $GITHUB_ENV
+      - name: Store additional env
+        run: |
+          echo "RCOMMIT=$(git rev-parse HEAD)" >> $GITHUB_ENV
+          echo "RCOMMITSHORT=$(git rev-parse --short HEAD)T" >> $GITHUB_ENV
+      - name: Create _version file
+        run: |
+          export VFILE=$(basename ${{ github.repository }})/_version.py
+          echo __version__=\"${{ env.RVERSION }}\" > $VFILE
+          echo __commit__=\"${{ env.RCOMMIT }}\" >> $VFILE
+          echo __commit_short__=\"${{ env.RCOMMITSHORT }}\" >> $VFILE
+          echo Debug Version path is $VFILE
+          echo Debug Version content is
+          cat $VFILE 
+      - name: Install dependencies from Project
+        run: |
+          if [ -f requirements_dev.txt ]; then pip install --user -r requirements_dev.txt; fi
+          pip install --user .
+      - name: Ruff Check
+        run: |
+          pip install ruff
+          ruff check $(basename ${{ github.repository }}) --config pyproject.toml
+      - name: Test with pytest
+        run: |
+          pytest
+      - name: Build
+        run: |
+          pip wheel --no-deps -w dist .
+          zip wheels.zip dist/*
+      - name: Debug Info
+        run: |
+          ls dist/*.whl
+          ls -l
+      - name: Always publish TestPYPI
+        if: github.event_name == 'push'
+        uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
+        with:
+          user: __token__
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          repository_url: https://test.pypi.org/legacy/
+      - name: Release Create Draft
+        id: create_release
+        if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_JDW_GH }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: true
+          prerelease: true
+      - name: Release Upload Assets
+        if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_AS_GH }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: wheels.zip
+          asset_name: wheels.zip
+          asset_content_type: application/zip
