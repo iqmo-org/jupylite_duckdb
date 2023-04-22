@@ -12,6 +12,8 @@ from js import globalThis
 
 CONNECTION = None
 
+DEBUG = False
+
 async def future_to_df(result_promise):
     try:
         obj = await result_promise # <class 'pyodide.ffi.JsProxy'>
@@ -32,6 +34,8 @@ async def query(sql: str, connection = None, return_future= False) -> DataFrame:
         if connection is not None:
             result_fut = connection.query(sql)
         else:
+            if DEBUG:
+                print("Creating a new connection to a temporary database...")
             js_function = js.Function('obj', '''
                 async function executeSqlDuckdb() {
                         let c = undefined

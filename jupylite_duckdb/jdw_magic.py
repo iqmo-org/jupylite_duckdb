@@ -9,22 +9,20 @@ import jupylite_duckdb as jd
 import functools
 from IPython.core.getipython import get_ipython
 
-
-debug = False
-
+DEBUG = True
 async def display_result(result, output, outputvar = None):
     with output:
         try:
             if result is None:
                 display("Empty Result")
             else:
-                if debug:
+                if DEBUG:
                     display(f"Output type: {type(result)}")
                 display(result)
                 if outputvar is not None: 
                     get_ipython().user_ns[outputvar] = result  # type: ignore
         except Exception as e:
-            display(e)
+            print(e)
 
 #@register_line_magic
 @register_cell_magic
