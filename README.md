@@ -6,6 +6,10 @@ Python wrapper to run DuckDB_WASM within JupyterLite with a Pyodide Kernel
 
 See [notebooks](https://github.com/iqmo-org/jupylite_duckdb/tree/main/notebooks) for example of running this within [jupyterlite](https://jupyter.org/try-jupyter/lab/)
 
+## Cell Magics %dql and %%dql
+Following the example of [magic_duckdb](https://github.com/iqmo-org/magic_duckdb), there's an initial proof of concept for a duckdb for JupyterLite. 
+See [Magic Example](https://github.com/iqmo-org/jupylite_duckdb/blob/main/notebooks/examples_magics.ipynb)
+
 ## You can also test directly on pyodide
 
 [pyodide console](https://pyodide.org/en/stable/console.html)
