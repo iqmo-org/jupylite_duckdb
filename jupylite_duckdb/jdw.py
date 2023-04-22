@@ -10,6 +10,7 @@ from js import globalThis
 # - Update connect to take connect(file)
 # - 
 
+CONNECTION = None
 
 async def future_to_df(result_promise):
     try:
@@ -23,9 +24,10 @@ async def future_to_df(result_promise):
         print(e)
         return None
     
-
-async def query(sql: str, connection: object = None, return_future= False) -> DataFrame:
+async def query(sql: str, connection = None, return_future= False) -> DataFrame:
     """Executes query in a standalone connection"""
+    if connection is None:
+        connection = CONNECTION # if both are None, then a temp db & connection is used
     try:
         if connection is not None:
             result_fut = connection.query(sql)
@@ -113,9 +115,12 @@ async def connect() -> object:
 
     result_promise = js_function(js_obj)
 
-    connection = await result_promise
+    thisconnection = await result_promise
 
-    return connection
+    global CONNECTION
+    CONNECTION = thisconnection
+    
+    return thisconnection
 
 def register_iiafes():
     syncWrapperConnect_js = js.Function('obj', '''

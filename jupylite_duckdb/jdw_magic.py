@@ -7,47 +7,42 @@ import ipywidgets as widgets
 import asyncio
 import jupylite_duckdb as jd
 import functools
+from IPython.core.getipython import get_ipython
 
 
-connection = None
 debug = False
 
-
-async def set_connection(obj, output):
-    global connection
-    with output: 
-        if debug:
-            display(f"Setting connection, type: {type(obj)}") # <class 'pyodide.ffi.JsProxy'>
-        connection = obj
-
-async def display_result(obj, output):
+async def display_result(result, output, outputvar = None):
     with output:
-        if obj is None:
-            display("Empty Result")
-        else:
-            if debug:
-                display(f"Output type: {type(obj)}")
-            display(obj)
+        try:
+            if result is None:
+                display("Empty Result")
+            else:
+                if debug:
+                    display(f"Output type: {type(result)}")
+                display(result)
+                if outputvar is not None: 
+                    get_ipython().user_ns[outputvar] = result  # type: ignore
+        except Exception as e:
+            display(e)
 
-@register_line_magic
+#@register_line_magic
 @register_cell_magic
 @magic_arguments.magic_arguments()
-@magic_arguments.argument('query', nargs="+", help="Query.", type=str)
+@magic_arguments.argument('-output', nargs=1, help="Output.", type=str)
+#@magic_arguments.argument('query', nargs="+", help="Query.", type=str)
 def dql(line = "", cell = ""):
-
+    outputvar = None
     if line:
         args = magic_arguments.parse_argstring(dql, line)
-        sql = ' '.join(args.query)
+        outputvar = args.output[0]
+        #sql = ' '.join(args.query)
 
-    elif cell:
-        sql= cell
+    sql = cell
+
     s_out = widgets.Output(layout={'border': '1px solid black'})
     display(s_out)
 
     with s_out:
-        if connection is None:
-            r = asyncio.get_event_loop().run_until_complete(jd.connect())
-            r.then(functools.partial(set_connection, output=s_out))
-        else:
-            r = asyncio.get_event_loop().run_until_complete(jd.query(sql=sql, return_future=False, connection=connection))
-            r.then(functools.partial(display_result, output=s_out))
+            r = asyncio.get_event_loop().run_until_complete(jd.query(sql=sql, return_future=False))
+            r.then(functools.partial(display_result, outputvar = outputvar, output=s_out))
