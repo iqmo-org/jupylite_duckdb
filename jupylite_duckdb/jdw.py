@@ -12,18 +12,23 @@ from js import globalThis
 
 
 async def future_to_df(result_promise):
-    obj = await result_promise # <class 'pyodide.ffi.JsProxy'>
-    a = obj.toArray()
-    data = [dict(v) for v in a.object_values()] 
+    try:
+        obj = await result_promise # <class 'pyodide.ffi.JsProxy'>
+        a = obj.toArray()
+        data = [dict(v) for v in a.object_values()] 
 
-    df = DataFrame(data)
-    return df
+        df = DataFrame(data)
+        return df
+    except Exception as e:
+        print(e)
+        return None
+    
 
 async def query(sql: str, connection: object = None, return_future= False) -> DataFrame:
     """Executes query in a standalone connection"""
     try:
         if connection is not None:
-            result_promise = connection.query(sql)
+            result_fut = connection.query(sql)
         else:
             js_function = js.Function('obj', '''
                 async function executeSqlDuckdb() {
@@ -49,9 +54,10 @@ async def query(sql: str, connection: object = None, return_future= False) -> Da
                         console.log('Running SQL: ', obj.sql)
                         const sql = obj.sql;
                         const result = await c.query(sql);
-
+                        
                         console.log('Result:', result);
-                        return result
+                        
+                        return await result
                     }
                 return executeSqlDuckdb()
             ''')
@@ -60,7 +66,7 @@ async def query(sql: str, connection: object = None, return_future= False) -> Da
             js_obj.connection = connection
 
             result_fut = js_function(js_obj)    # <class 'pyodide.webloop.PyodideFuture'>
-        
+
         if return_future: 
             return result_fut
         else:
@@ -106,7 +112,7 @@ async def connect() -> object:
     js_obj.connectionstr = ":memory:"
 
     result_promise = js_function(js_obj)
-    
+
     connection = await result_promise
 
     return connection

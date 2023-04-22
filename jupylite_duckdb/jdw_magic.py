@@ -17,15 +17,18 @@ async def set_connection(obj, output):
     global connection
     with output: 
         if debug:
-            print(f"Setting connection, type: {type(obj)}")
+            display(f"Setting connection, type: {type(obj)}") # <class 'pyodide.ffi.JsProxy'>
         connection = obj
 
 async def display_result(obj, output):
-        with output:
+    with output:
+        if obj is None:
+            display("Empty Result")
+        else:
             if debug:
-                print(f"Output type: {type(obj)}")
+                display(f"Output type: {type(obj)}")
             display(obj)
-            
+
 @register_line_magic
 @register_cell_magic
 @magic_arguments.magic_arguments()
@@ -38,17 +41,13 @@ def dql(line = "", cell = ""):
 
     elif cell:
         sql= cell
+    s_out = widgets.Output(layout={'border': '1px solid black'})
+    display(s_out)
 
-    if connection is None:
-        s_out = widgets.Output(layout={'border': '1px solid black'})
-        with s_out:
+    with s_out:
+        if connection is None:
             r = asyncio.get_event_loop().run_until_complete(jd.connect())
             r.then(functools.partial(set_connection, output=s_out))
-
-    else:
-        s_out = widgets.Output(layout={'border': '1px solid black'})
-        display(s_out)
-        with s_out:
+        else:
             r = asyncio.get_event_loop().run_until_complete(jd.query(sql=sql, return_future=False, connection=connection))
             r.then(functools.partial(display_result, output=s_out))
-
