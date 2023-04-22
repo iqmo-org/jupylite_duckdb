@@ -34,3 +34,4 @@ print(r3);
 - If you're adding local .py files, use [importlib.invalidate_caches()](https://pyodide.org/en/stable/usage/faq.html#why-can-t-i-import-a-file-i-just-wrote-to-the-file-system). Even then, it was flaky to import.
 - Careful with caching... %pip install will pull from browser cache. I had to clear frequently within dev tools
 - To clear local storage, which is annoyingly persistent, https://superuser.com/questions/519628/clear-html5-local-storage-on-a-specific-page
+- %autoawait is part of why this works in notebooks, which is enabled by default. The %%dql cell magic patches transform-cell to push an await into the cell transformation.: https://ipython.readthedocs.io/en/stable/interactive/autoawait.html

@@ -1,5 +1,3 @@
-# Inspired by: https://github.com/jupyterlite/jupyterlite/issues/237
-
 from IPython.core.magic import register_line_magic, register_cell_magic
 from IPython.core import magic_arguments
 from IPython.display import display
@@ -44,3 +42,24 @@ def dql(line = "", cell = ""):
     with s_out:
             r = asyncio.get_event_loop().run_until_complete(jd.query(sql=sql, return_future=False))
             r.then(functools.partial(display_result, outputvar = outputvar, output=s_out))
+
+
+def patch_magic():
+    # Monkey patching a transformation to stick an "await" ahead of this cell magic
+    
+    
+    shell = get_ipython()
+
+    if not hasattr(shell, "_orig_transform_cell"):
+        shell._orig_transform_cell = shell.transform_cell
+
+    def transform_cell(*args, **kwargs) -> bool:
+            #print(args)
+            #print(kwargs)
+            
+            result=shell._orig_transform_cell(*args, **kwargs)
+            if result.startswith("get_ipython().run_cell_magic('dql',"):
+                result="await" + result
+            return result
+    
+patch_magic()
