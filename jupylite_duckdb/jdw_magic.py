@@ -2,7 +2,7 @@
 
 from IPython.core.magic import register_line_magic, register_cell_magic
 from IPython.core import magic_arguments
-from IPython import display
+from IPython.display import display
 import ipywidgets as widgets
 import asyncio
 import jupylite_duckdb as jd
