@@ -28,9 +28,14 @@ print(r2);
 print(r3);
 ```
 
-
+## To Do
+- Efficiently creating df's (js to python); Blocked by pyarrow in pyodide.
+- Register dataframes (python to js)
+- Reduce startup time, probably a combination of the jupyterlite config (preloading modules) and wasm
+- Handling errors: detect and display errors in Jupyter: too much sfuff buried in console, such as CORS errors
+- invalidate pip browser cache (as/if needed); annoying for development purposes
+- think through async/await/transform_cell approach and whether there's a better solution.
 ## Some development notes
-- There's some (well known) CORS considerations when trying to load data from other sites. Examples here are all using public sites, there's some limits that to address with your own jupyterlite deployment 
 - If you're adding local .py files, use [importlib.invalidate_caches()](https://pyodide.org/en/stable/usage/faq.html#why-can-t-i-import-a-file-i-just-wrote-to-the-file-system). Even then, it was flaky to import.
 - Careful with caching... %pip install will pull from browser cache. I had to clear frequently within dev tools
 - To clear local storage, which is annoyingly persistent, https://superuser.com/questions/519628/clear-html5-local-storage-on-a-specific-page
