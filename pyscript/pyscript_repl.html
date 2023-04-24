@@ -1,0 +1,80 @@
+
+<html>
+    <head>
+        <title>DuckDB Example</title>
+        <meta charset="iso-8859-1" />
+        <link rel="icon" type="image/x-icon" href="./favicon.png" />
+
+        <script type="text/javascript">
+            Bokeh.set_log_level("info");
+        </script>
+        <link
+            rel="stylesheet"
+            href="https://pyscript.net/latest/pyscript.css"
+        />
+
+        <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+        <link rel="stylesheet" href="https://pyscript.net/examples/assets/css/examples.css" />
+    </head>
+    <body>
+        <nav class="navbar" style="background-color: #000000">
+            <div class="app-header">
+                
+                <a class="title" href="" style="color: #f0ab3c"
+                    >DuckDB + Pyodide + PyScript</a
+                >
+            </div>
+        </nav>
+        <py-tutor>
+            <section class="pyscript">
+
+                <h1 class="font-semibold text-2xl ml-5">Custom REPL</h1>
+                <py-tutor>
+                    <py-config>
+                        packages = [
+                        "bokeh",
+                        "numpy",
+                        "jupylite_duckdb==0.0.18a3"
+                        ]
+                        plugins = [
+                        "https://pyscript.net/latest/plugins/python/py_tutor.py"
+                        ]
+
+                        [[fetch]]
+                        files = ["https://pyscript.net/examples/utils.py", "https://pyscript.net/examples/antigravity.py"]
+                    </py-config>
+                    <div style="margin-right: 3rem">
+                        <py-repl id="my-repl" auto-generate="true">
+                            import asyncio
+                            import jupylite_duckdb as duckdb
+                           
+                            async def duckdb_demo():
+                                ##############################
+                                # Ignore the async stuff above and below. Just write your code here.
+
+                                query = """
+                                    create table iris as select * from read_csv_auto('https://raw.githubusercontent.com/mwaskom/seaborn-data/master/iris.csv');
+                                    select * from iris;
+                                    """
+
+                                print("Loading duckdb wasm and connecting to the database")
+                                await duckdb.connect()
+                                print("Executing query to get DuckDB Version")
+                                df = await duckdb.query("pragma version")
+                                print(df)
+                                
+                                df2 = await duckdb.query(query)
+                                print(df2.describe())
+                                display(df2.head(3))
+                                ##############################################################################################################################
+                            # Run
+                            print("Pyodide is loaded, Modules installed")
+                            asyncio.ensure_future(duckdb_demo())
+                        </py-repl>
+                        <div id="output" class="p-4">Shift-Enter to Execute. First execution has a slight delay / hang</div>
+                    </div>
+                </py-tutor>
+            </section>
+        </py-tutor>
+    </body>
+</html>
