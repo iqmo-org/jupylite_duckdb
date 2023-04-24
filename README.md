@@ -2,9 +2,10 @@
 This is highly experimental and will change frequently. 
 
 There are three ways to demo this:
+- PyScript: [PyScript + DuckDb](https://raw.githack.com/iqmo-org/jupylite_duckdb/main/pyscript/pyscript_example.html)
 - JupyerLite: Open a JupyterLite site, and use the examples from  =[notebooks](https://github.com/iqmo-org/jupylite_duckdb/tree/main/notebooks)
 - JupyterLite [Code Console REPL](https://iqmo-org.github.io/jupyterlite_run/repl/?kernel=python&code=print%28%22Installing%20packages%22%29%0A%25pip%20install%20jupylite-duckdb%20--pre%0A%25pip%20install%20plotly%0Aprint%28%22Creating%20DuckDB%20Instance%22%29%0Aimport%20jupylite_duckdb%20as%20duckdb%0Aawait%20duckdb.connect%28%29%0Aprint%28%22Printing%20DuckDB%20Version%22%29%0Adf%20%3D%20await%20duckdb.query%28%22pragma%20version%22%29%0Adisplay%28df%29%0A%0Aimport%20plotly.express%20as%20px%0Ar4%20%3D%20await%20duckdb.query%28%22select%20%2A%20from%20read_csv_auto%28%27https%3A%2F%2Fraw.githubusercontent.com%2Fmwaskom%2Fseaborn-data%2Fmaster%2Firis.csv%27%29%22%29%0Apx.scatter%28r4%2C%20x%3D%22sepal_length%22%2C%20y%3D%22petal_length%22%2C%20color%3D%22species%22%29%0A)
-- Pyodide Console
+- Pyodide Console: See below
 # Demonstration
 ## Code Console REPL Example
 [Code Console REPL](https://iqmo-org.github.io/jupyterlite_run/repl/?kernel=python&code=print%28%22Installing%20packages%22%29%0A%25pip%20install%20jupylite-duckdb%20--pre%0A%25pip%20install%20plotly%0Aprint%28%22Creating%20DuckDB%20Instance%22%29%0Aimport%20jupylite_duckdb%20as%20duckdb%0Aawait%20duckdb.connect%28%29%0Aprint%28%22Printing%20DuckDB%20Version%22%29%0Adf%20%3D%20await%20duckdb.query%28%22pragma%20version%22%29%0Adisplay%28df%29%0A%0Aimport%20plotly.express%20as%20px%0Ar4%20%3D%20await%20duckdb.query%28%22select%20%2A%20from%20read_csv_auto%28%27https%3A%2F%2Fraw.githubusercontent.com%2Fmwaskom%2Fseaborn-data%2Fmaster%2Firis.csv%27%29%22%29%0Apx.scatter%28r4%2C%20x%3D%22sepal_length%22%2C%20y%3D%22petal_length%22%2C%20color%3D%22species%22%29%0A)
