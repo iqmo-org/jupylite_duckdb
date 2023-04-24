@@ -1,7 +1,7 @@
 
 <html>
     <head>
-        <title>Bokeh Example</title>
+        <title>DuckDB Example</title>
         <meta charset="iso-8859-1" />
         <link rel="icon" type="image/x-icon" href="./favicon.png" />
         <script
@@ -34,16 +34,14 @@
         />
 
         <script defer src="https://pyscript.net/latest/pyscript.js"></script>
-        <link rel="stylesheet" href="./assets/css/examples.css" />
+        <link rel="stylesheet" href="https://pyscript.net/examples/assets/css/examples.css" />
     </head>
     <body>
         <nav class="navbar" style="background-color: #000000">
             <div class="app-header">
-                <a href="/">
-                    <img src="./logo.png" class="logo" />
-                </a>
+                
                 <a class="title" href="" style="color: #f0ab3c"
-                    >Bokeh Example</a
+                    >DuckDB + Pyodide + PyScript</a
                 >
             </div>
         </nav>
@@ -53,16 +51,33 @@
 
                 <py-config>
                     packages = [
-                      "jupylite_duckdb"
+                      "jupylite_duckdb==0.0.18a3"
                       
                     ]
-                    plugins = [
-                      "https://pyscript.net/latest/plugins/python/py_tutor.py"
-                    ]
+                    
                 </py-config>
 
                 <py-script id="main">
-                    import jupylite_duckdb
+                    import asyncio
+                    import jupylite_duckdb as duckdb
+
+                    # Wrap top level function in an async, so we can 
+                    # await the async js functions
+                    async def duckdb_demo():
+                        print("Loading duckdb wasm and connecting to the database")
+                        await duckdb.connect()
+                        print("Executing query to get DuckDB Version")
+                        df = await duckdb.query("pragma version")
+                        print(df)
+                        
+                        
+                        query2 = "select * from read_csv_auto('https://raw.githubusercontent.com/mwaskom/seaborn-data/master/iris.csv')"
+                        df2 = await duckdb.query(query2)
+                        print(df2.describe())
+                    
+                    # Run
+                    print("Pyodide is loaded, Modules installed")
+                    asyncio.ensure_future(duckdb_demo())
                 </py-script>
             </section>
         </py-tutor>
