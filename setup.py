@@ -25,5 +25,5 @@ setup(
     keywords="jupyterlite duckdb wasm",
     packages=find_packages(exclude=["tests"]),
     include_package_data=True,
-    install_requires=["pandas", "nbformat>=4.2.0", "ipywidgets"]
+    install_requires=["pandas"]  # , "nbformat>=4.2.0", "ipywidgets"
 )
