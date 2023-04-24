@@ -20,6 +20,7 @@
 # ref: https://github.com/ipython/ipython/blob/main/IPython/core/interactiveshell.py
 # https://github.com/ipython/ipython/blob/main/IPython/core/inputtransformer2.py
 # 
+import warnings
 
 from IPython.core.magic import register_line_magic, register_cell_magic
 from IPython.core import magic_arguments
@@ -29,6 +30,10 @@ import asyncio
 import jupylite_duckdb as jd
 import functools
 from IPython.core.getipython import get_ipython
+
+import warnings
+
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 DEBUG = True
 async def display_result(result, output, outputvar = None):
@@ -49,45 +54,39 @@ async def display_result(result, output, outputvar = None):
 @register_cell_magic
 @magic_arguments.magic_arguments()
 @magic_arguments.argument('-o', '--output', nargs=1, help="Output.", type=str)
-#@magic_arguments.argument('query', nargs="+", help="Query.", type=str)
-def dql(line = "", cell = ""):
-    raise ValueError("Invalid syntax")
-    pass
+@magic_arguments.argument('remainder', nargs='*', help='Everything else')
+async def dql(line = "", cell = ""):
+    outputvar = None
+    if line:
+        args = magic_arguments.parse_argstring(dql, line)
+        if args.output:
+            outputvar = args.output[0]
+    
+    if cell:
+        query=cell
+    else:
+        query=" ".join(args.remainder)
+    
+    result = await jd.query(query)
+    if outputvar:
+        get_ipython().user_ns[outputvar] = result
+    
+    return result
 
-
-def transform_dql_line(line: str) -> str:
-    outputobj = None
-    try:
-        if line.startswith("-o"):
-            a = line.split(" ")
-            if len(a) < 3:
-                print("Warning: Missing option after -o or query")
-            else:
-                outputobj = a[1]
-                rest = " ".join(a[2:])
-        else:
-            rest = line
-
-        if outputobj is not None: 
-            pre = f"{outputobj} = "
-        else:
-            pre = ""
-
-        rest = rest.replace("'", "\'")
-        result =  f"{pre}await jd.query(sql='{rest}')\n"
-        return result
-    except Exception as e:
-        print(f"Error {e}")
-
+            
 def transform_dql_cell(orig_cell: str) -> str:
+    # Use find_cell_magic because we don't know the namespace
     lines = orig_cell.split("\n")
+    
     first_line=lines[0]
-    first_line=first_line.replace("%%dql", "").replace("-o", "").strip()
-    rest = "\\n".join(lines[1:])
-    rest=rest.replace("'", "\\'")
-    if len(first_line) >0:
-        first_line = f"{first_line} = "
-    result= f"{first_line}await jd.query(sql='{rest}')"
+    first_line=first_line.replace("%%dql", "") #.replace("-o", "").strip()
+    if len(lines)==1:
+        rest = ""
+    else:
+        rest = "\\n".join(lines[1:])
+        rest=rest.replace("'", "\\'")
+    
+    result= f"await get_ipython().find_cell_magic('dql')(line='{first_line}', cell='{rest}')"
     return result
 
 def patch_transformer():
@@ -97,47 +96,35 @@ def patch_transformer():
     
     if not hasattr(transformermanager, "_orig_transform_cell"):
         transformermanager._orig_transform_cell = transformermanager.transform_cell
-        
+    
     def jd_transform_cell(*args, **kwargs) -> bool:
         orig_cell = args[0]
+        
         if orig_cell.startswith("%%dql"):
             return transform_dql_cell(orig_cell)
         else:
             result=get_ipython().input_transformer_manager._orig_transform_cell(*args, **kwargs)
-            #print(result)
+            if "%dql" in orig_cell:
+                result = result.replace("get_ipython().run_line_magic('dql',", "await get_ipython().find_line_magic('dql')(line=")
+                #print(result)
             return result
     
     transformermanager.transform_cell = jd_transform_cell
 
-
-def patch_magic_assign():
-    from IPython.core.inputtransformer2 import MagicAssign
-    from typing import List
-
-    if not hasattr(MagicAssign, "_orig_transform"):
-        MagicAssign._orig_transform = MagicAssign.transform
-
-    def transform(a, lines: List[str]):
-        return a._orig_transform(lines)
-
-    MagicAssign.transform=transform
-
-def patch_tr_magic():
-    import IPython.core.inputtransformer2 as it
-
-    if not hasattr(it, "_orig_tr_magic"):
-        it._orig_tr_magic = it.tr[it.ESC_MAGIC]
-
-    def _tr_magic(content):
-        if content.startswith("dql "):
-            result=transform_dql_line(content[4:])
-        else:
-            result= it._orig_tr_magic(content)
-        return result
-
-    it.tr[it.ESC_MAGIC] = _tr_magic
+def patch_should_run_async():
+    shell = get_ipython()
     
+    if not hasattr(shell, "_orig_should_run_async"):
+        shell._orig_should_run_async = shell.should_run_async
+    
+    def jd_should_run_async(*args, **kwargs) -> bool:
+        orig_cell = args[0]
+        if not orig_cell.startswith("%%") and "%dql" in orig_cell:
+            return True
+        else:
+            return shell._orig_should_run_async(*args, **kwargs)
+        
+    shell.should_run_async = jd_should_run_async
+        
 patch_transformer()
-patch_tr_magic()
-# Disabled for now: xyz = %dql won't work. 
-# patch_magic_assign()
+patch_should_run_async()
