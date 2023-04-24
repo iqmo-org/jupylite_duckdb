@@ -70,8 +70,9 @@ async def dql(line = "", cell = ""):
     result = await jd.query(query)
     if outputvar:
         get_ipython().user_ns[outputvar] = result
-    
-    return result
+        return None
+    else:
+        return result
 
             
 def transform_dql_cell(orig_cell: str) -> str:
