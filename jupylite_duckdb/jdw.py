@@ -51,6 +51,13 @@ async def query(sql: str, connection = None, return_future= False) -> DataFrame:
                             const logger = new duckdb.ConsoleLogger();
                             const db = new duckdb.AsyncDuckDB(logger, worker);
                             await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+                            await db.open({
+                                path: ':memory:',
+                                query: {
+                                    castBigIntToDouble: true,
+                                    castDecimalToDouble: true
+                                },
+                            });
                             c = await db.connect();
                         }
                         else {
