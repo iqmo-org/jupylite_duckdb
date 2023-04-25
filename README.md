@@ -70,9 +70,8 @@ print(r3);
 ```
 
 ## Various Issues, Todos and Ideas
-- Move examples into our hosted jupyterlite
 - Implement a proof of concept version of dataframe registration
-- Evaluate startup time reduction. Probably will never do this, given PyScript. 
+- Evaluate startup time reduction, perhaps custom pyodide build
 - Handling errors: detect and display errors in Jupyter: too much sfuff buried in console, such as CORS errors
 - invalidate pip browser cache (as/if needed); annoying for development purposes
 - think through async/await/transform_cell approach and whether there's a better solution.
