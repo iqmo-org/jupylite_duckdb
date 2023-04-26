@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SQL Query Executor</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>DuckDB WASM Example</h1>
+    <form id="queryForm">
+        <label for="sql">Enter SQL statement(s):</label>
+        <textarea id="sql" rows="4" cols="50">pragma version</textarea>
+        <button type="submit">Execute</button>
+    </form>
+    <div id="rc"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/apache-arrow@11.0.0/Arrow.es2015.min.js"></script>
+    <script>
+        document.getElementById('queryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const sql = document.getElementById('sql').value;
+            const rc = document.getElementById('rc');
+            rc.innerHTML = '';
+
+            if (!sql) {
+                alert('Please enter an SQL query.');
+                return;
+            }
+
+            try {
+                const arrowTable = await executeQuery(sql);
+                const htmlTable = arrowTableToHtmlTable(arrowTable);
+                rc.appendChild(htmlTable);
+            } catch (error) {
+                alert('Error:' + error.message);
+            }
+        });
+
+        async function executeQuery(sql) {
+            const duckdb = await import('https://cdn.skypack.dev/@duckdb/duckdb-wasm');
+            const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
+            const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
+
+            const worker_url = URL.createObjectURL(
+                new Blob([`importScripts("${bundle.mainWorker}");`], { type: 'text/javascript' })
+            );
+            const worker = new Worker(worker_url);
+            const logger = new duckdb.ConsoleLogger();
+            const db = new duckdb.AsyncDuckDB(logger, worker);
+            await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+            await db.open({
+                path: ':memory:',
+                query: {
+                    castBigIntToDouble: true,
+                    castDecimalToDouble: true
+                },
+            });
+            c = await db.connect();
+
+
+            console.log('Running SQL: ', sql)
+            const result = await c.query(sql);
+            globalThis.result=result
+            console.log('Result:', result);
+
+            return await result
+        }
+
+        function arrowTableToHtmlTable(table) {
+            const rows = table.toArray();
+            const tableEl = document.createElement('table');
+            const theadEl = document.createElement('thead');
+            const headerRowEl = document.createElement('tr');
+            for (const name of Object.keys(rows[0])) {
+                const thEl = document.createElement('th');
+                thEl.textContent = name;
+                headerRowEl.appendChild(thEl);
+            }
+            theadEl.appendChild(headerRowEl);
+            tableEl.appendChild(theadEl);
+
+            const tbodyEl = document.createElement('tbody');
+            for (const row of rows) {
+                const rowEl = document.createElement('tr');
+                for (const value of Object.values(row)) {
+                const tdEl = document.createElement('td');
+                tdEl.textContent = value;
+                rowEl.appendChild(tdEl);
+                }
+                tbodyEl.appendChild(rowEl);
+            }
+            tableEl.appendChild(tbodyEl);
+
+            return tableEl;
+            }
+
+    </script>
+</body>
+
+</html>
