@@ -54,26 +54,34 @@
         });
 
         async function executeQuery(sql) {
-            const duckdb = await import('https://cdn.skypack.dev/@duckdb/duckdb-wasm');
-            const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
-            const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
+            if (typeof globalThis.c !== 'undefined' || globalThis.c === null) {
+                console.log("Using existing connection")
+                c = globalThis.c
+            } 
+            else
+            {
+                console.log("Initializing and connecting to a new db")
+                const duckdb = await import('https://cdn.skypack.dev/@duckdb/duckdb-wasm');
+                const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
+                const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
 
-            const worker_url = URL.createObjectURL(
-                new Blob([`importScripts("${bundle.mainWorker}");`], { type: 'text/javascript' })
-            );
-            const worker = new Worker(worker_url);
-            const logger = new duckdb.ConsoleLogger();
-            const db = new duckdb.AsyncDuckDB(logger, worker);
-            await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
-            await db.open({
-                path: ':memory:',
-                query: {
-                    castBigIntToDouble: true,
-                    castDecimalToDouble: true
-                },
-            });
-            c = await db.connect();
-
+                const worker_url = URL.createObjectURL(
+                    new Blob([`importScripts("${bundle.mainWorker}");`], { type: 'text/javascript' })
+                );
+                const worker = new Worker(worker_url);
+                const logger = new duckdb.ConsoleLogger();
+                const db = new duckdb.AsyncDuckDB(logger, worker);
+                await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+                await db.open({
+                    path: ':memory:',
+                    query: {
+                        castBigIntToDouble: true,
+                        castDecimalToDouble: true
+                    },
+                });
+                c = await db.connect();
+                globalThis.c = c
+            }
 
             console.log('Running SQL: ', sql)
             const result = await c.query(sql);
