@@ -54,7 +54,7 @@
         });
 
         async function executeQuery(sql) {
-            if (typeof globalThis.c !== 'undefined' || globalThis.c === null) {
+            if (typeof globalThis.c !== 'undefined' && globalThis.c !== null) {
                 console.log("Using existing connection")
                 c = globalThis.c
             } 
