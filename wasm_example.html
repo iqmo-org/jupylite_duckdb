@@ -20,12 +20,22 @@
             font-weight: bold;
         }
     </style>
+    <script>
+        // Populate SQL text with sql parameter
+        const getQueryParam = (param) => new URLSearchParams(window.location.search).get(param);
+    
+        document.addEventListener('DOMContentLoaded', () => {
+          const sql = getQueryParam('sql') || 'PRAGMA version';
+          document.getElementById('sql').value = sql;
+          const form = document.getElementById('queryForm');
+        });
+    </script>
 </head>
 <body>
     <h1>DuckDB WASM Example</h1>
     <form id="queryForm">
         <label for="sql">Enter SQL statement(s):</label>
-        <textarea id="sql" rows="4" cols="50">pragma version</textarea>
+        <textarea id="sql" rows="4" cols="50">PRAGMA version</textarea>
         <button type="submit">Execute</button>
     </form>
     <div id="rc"></div>
